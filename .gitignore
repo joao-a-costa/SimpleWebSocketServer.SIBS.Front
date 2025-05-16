@@ -1,0 +1,12 @@
+/.vs
+/packages
+/SimpleWebSocketServer.SIBS.Front/bin
+/SimpleWebSocketServer.SIBS.Front/obj
+/SimpleWebSocketServer.SIBS.Front.Console/bin
+/SimpleWebSocketServer.SIBS.Front.Console/obj
+/SimpleWebSocketServer.SIBS.Front/nugetPackagePush.cmd
+/SimpleWebSocketServer.SIBS.Front.Console/.vs/SimpleWebSocketServer.SIBS.Front.Console.csproj.dtbcache.json
+/SimpleWebSocketServer.SIBS.Front/.vs/SimpleWebSocketServer.SIBS.Front.csproj.dtbcache.json
+/SimpleWebSocketServer.SIBS.Front/.vs
+/SimpleWebSocketServer.SIBS.Front/SimpleWebSocketServer.SIBS.Front.csproj.user
+/SimpleWebSocketServer.SIBS.Front/SimpleWebSocketServer.SIBS.Front.nuspec
