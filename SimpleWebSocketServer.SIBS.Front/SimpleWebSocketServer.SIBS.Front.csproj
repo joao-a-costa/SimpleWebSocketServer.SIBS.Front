@@ -97,6 +97,8 @@
     <Compile Include="Models\SetAuthCredentialsReqResponse.cs" />
     <Compile Include="Models\SetMerchantDataReq.cs" />
     <Compile Include="Models\SetMerchantDataReqResponse.cs" />
+    <Compile Include="Models\TerminalDisconnected.cs" />
+    <Compile Include="Models\TerminalStatusReq.cs" />
     <Compile Include="Models\TerminalStatusReqResponse.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utilities\UtilitiesSibs.cs" />

@@ -31,19 +31,16 @@ namespace SimpleWebSocketServer.SIBS.Front
 
         private string Address { get; set; }
         private ClientWebSocket Socket { get; set; }
-        private Guid ClientId { get; set; }
-        private int TerminalId { get; set; }
+        public Guid ClientId { get; set; }
+        public int TerminalId { get; set; }
         public bool IsConnected => Socket?.State == WebSocketState.Open;
 
-        //public delegate void ClientConnectedResponseReceivedEventHandler(object sender, ClientConnectedResponse reqResponse);
-        //public event ClientConnectedResponseReceivedEventHandler ClientConnectedResponseReceived;
         public delegate void RegisterFrontResponseReceivedEventHandler(object sender, RegisterFrontResponse reqResponse);
         public event RegisterFrontResponseReceivedEventHandler RegisterFrontResponseReceived;
         public delegate void ListTerminalsResponseReceivedEventHandler(object sender, ListTerminalsResponse reqResponse);
         public event ListTerminalsResponseReceivedEventHandler ListTerminalsResponseReceived;
         public delegate void LinqTerminalToFrontResponseReceivedEventHandler(object sender, LinqTerminalToFrontResponse reqResponse);
         public event LinqTerminalToFrontResponseReceivedEventHandler LinqTerminalToFrontResponseReceived;
-
 
         public delegate void ClientConnectedEventHandler(object sender, Guid clientId, string message);
         public delegate void ClientDisconnectedEventHandler(object sender, EventArgs e);
@@ -68,7 +65,9 @@ namespace SimpleWebSocketServer.SIBS.Front
         public delegate void PendingReversalsReqResponseEventHandler(PendingReversalsReqResponse reqResponse);
         public delegate void DeletePendingReversalsReqResponseEventHandler(DeletePendingReversalsReqResponse reqResponse);
         public delegate void FrontRegisteredEventHandler(object sender, Guid clientId);
+        public delegate void TerminalDisconnectedEventHandler(TerminalDisconnected reqResponse);
 
+        public event TerminalStatusReqResponseReceivedEventHandler TerminalStatusReqResponseReceived;
         public event ProcessPaymentReqResponseEventHandler ProcessPaymentReqReceived;
         public event EventNotificationEventHandler EventNotificationReceived;
         public event HeartbeatNotificationEventHandler HeartbeatNotificationReceived;
@@ -86,6 +85,8 @@ namespace SimpleWebSocketServer.SIBS.Front
         public event LoyaltyInquiryResponseEventHandler LoyaltyInquiryResponseReceived;
         public event PendingReversalsReqResponseEventHandler PendingReversalsReqReceived;
         public event DeletePendingReversalsReqResponseEventHandler DeletePendingReversalsReqReceived;
+        public event TerminalDisconnectedEventHandler TerminalDisconnectedReceived;
+
 
         #region "Private"
 
@@ -148,6 +149,9 @@ namespace SimpleWebSocketServer.SIBS.Front
                         var response = JsonConvert.DeserializeObject<ClientConnectedResponse>(message);
                         //ClientId = response.ClientId;
                         //ClientConnectedResponseReceived?.Invoke(this, response);
+                        break;
+                    case RequestType.STATUS_RESPONSE:
+                        OnTerminalStatusReqResponseReceived(JsonConvert.DeserializeObject<TerminalStatusReqResponse>(message));
                         break;
                     case RequestType.REGISTER_FRONT_RESPONSE:
                         RegisterFrontResponseReceived?.Invoke(this, JsonConvert.DeserializeObject<RegisterFrontResponse>(message));
@@ -223,6 +227,10 @@ namespace SimpleWebSocketServer.SIBS.Front
                         OnPendingReversalsReqResponseReceived(JsonConvert
                             .DeserializeObject<PendingReversalsReqResponse>(message));
                         break;
+                    case RequestType.TERMINAL_DISCONNECTED:
+                        OnTerminalDisconnectedReceived(JsonConvert
+                            .DeserializeObject<TerminalDisconnected>(message));
+                        break;
                     case RequestType.DELETE_PENDING_REVERSALS_RESPONSE:
                         OnDeletePendingReversalsReqResponseReceived(JsonConvert
                             .DeserializeObject<DeletePendingReversalsReqResponse>(message));
@@ -231,9 +239,7 @@ namespace SimpleWebSocketServer.SIBS.Front
                         var newTerminalConnectedReq = JsonConvert.DeserializeObject<NewTerminalConnectedReq>(message);
 
                         if (newTerminalConnectedReq.TerminalId == TerminalId)
-                        {
                             LinqTerminalToFrontRequest(ClientId, TerminalId).Wait();
-                        }
                         break;
                     default:
                         //Log(_MessageReceivedUnknownMessage);
@@ -250,6 +256,7 @@ namespace SimpleWebSocketServer.SIBS.Front
         {
             var res = true;
             Exception exception = null;
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
             try
             {
@@ -261,7 +268,8 @@ namespace SimpleWebSocketServer.SIBS.Front
 
                 if (!IsConnected)
                 {
-                    await Socket.ConnectAsync(new Uri(Address), CancellationToken.None);
+
+                    await Socket.ConnectAsync(new Uri(Address), cts.Token);
 
                     _ = Task.Run(ReceiveLoop);
                 }
@@ -270,6 +278,10 @@ namespace SimpleWebSocketServer.SIBS.Front
             {
                 res = false;
                 exception = ex;
+            }
+            finally
+            {
+                cts?.Dispose();
             }
 
             return new Tuple<bool, Exception>(res, exception);
@@ -312,12 +324,46 @@ namespace SimpleWebSocketServer.SIBS.Front
         /// Sends a terminal status request.
         /// </summary>
         /// <returns>The task object representing the asynchronous operation.</returns>
+        public async Task SendTerminalStatusRequest()
+        {
+            try
+            {
+                var request = new TerminalStatusReq();
+                await Send(JsonConvert.SerializeObject(request));
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"{_MessageErrorProcessingRequest}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sends a list terminals request.
+        /// </summary>
+        /// <returns>The task object representing the asynchronous operation.</returns>
         public async Task SendListTerminalRequest()
         {
             try
             {
                 var request = new ListTerminalsReq();
                 await Send(JsonConvert.SerializeObject(request));
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"{_MessageErrorProcessingRequest}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sends a reconciliation request.
+        /// </summary>
+        /// <param name="req">The request object</param>
+        /// <returns>The task object representing the asynchronous operation.</returns>
+        public async Task SendReconciliationRequest(ReconciliationReq req)
+        {
+            try
+            {
+                await Send(JsonConvert.SerializeObject(req));
             }
             catch (Exception ex)
             {
@@ -341,7 +387,7 @@ namespace SimpleWebSocketServer.SIBS.Front
                 input = System.Console.ReadLine();
 
                 var reconciliationReq = new ReconciliationReq() { Iban = input };
-                await Send(JsonConvert.SerializeObject(reconciliationReq));
+                await SendReconciliationRequest(reconciliationReq);
             }
             catch (Exception ex)
             {
@@ -409,6 +455,23 @@ namespace SimpleWebSocketServer.SIBS.Front
         /// <summary>
         /// Sends a process payment request.
         /// </summary>
+        /// <param name="req"> The request object</param>
+        /// <returns>The task object representing the asynchronous operation.</returns>
+        public async Task SendProcessPaymentRequest(ProcessPaymentReq req)
+        {
+            try
+            {
+                await Send(JsonConvert.SerializeObject(req));
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"{_MessageErrorProcessingRequest}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sends a process payment request.
+        /// </summary>
         /// <returns>The task object representing the asynchronous operation.</returns>
         public async Task SendProcessPaymentRequest()
         {
@@ -432,7 +495,25 @@ namespace SimpleWebSocketServer.SIBS.Front
                 }
 
                 var processPaymentRequest = new ProcessPaymentReq { AmountData = new AmountData { Amount = amount } };
-                await Send(JsonConvert.SerializeObject(processPaymentRequest));
+                await SendProcessPaymentRequest(processPaymentRequest);
+
+                //statusEventReceived.Set();
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"{_MessageErrorProcessingRequest}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sends a refund payment request.
+        /// </summary>
+        /// <returns>The task object representing the asynchronous operation.</returns>
+        public async Task SendRefundPaymentRequest(RefundReq req)
+        {
+            try
+            {
+                await Send(JsonConvert.SerializeObject(req));
 
                 //statusEventReceived.Set();
             }
@@ -464,7 +545,7 @@ namespace SimpleWebSocketServer.SIBS.Front
                         TransactionType = paymentData.TransactionType
                     }
                 };
-                await Send(JsonConvert.SerializeObject(processPaymentRequest));
+                await SendRefundPaymentRequest(processPaymentRequest);
 
                 //statusEventReceived.Set();
             }
@@ -495,12 +576,45 @@ namespace SimpleWebSocketServer.SIBS.Front
         /// Sends a pairing code request cancel
         /// </summary>
         /// <returns>The task object representing the asynchronous operation.</returns>
+        public async Task SendPairingRequestCancel(PairingReq req)
+        {
+            try
+            {
+                await Send(JsonConvert.SerializeObject(req));
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"{_MessageErrorProcessingRequest}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sends a pairing code request cancel
+        /// </summary>
+        /// <returns>The task object representing the asynchronous operation.</returns>
         public async Task SendPairingRequestCancel()
         {
             try
             {
                 var pairingReq = new PairingReq() { PairingStep = PairingStep.CANCEL_PAIRING };
-                await Send(JsonConvert.SerializeObject(pairingReq));
+                await SendPairingRequestCancel(pairingReq);
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"{_MessageErrorProcessingRequest}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sends a pairing code request code to validate
+        /// </summary>
+        /// <param name="code">The code to validate</param>
+        /// <returns>The task object representing the asynchronous operation.</returns>
+        public async Task SendPairingRequestCode(PairingReq req)
+        {
+            try
+            {
+                await Send(JsonConvert.SerializeObject(req));
             }
             catch (Exception ex)
             {
@@ -518,7 +632,7 @@ namespace SimpleWebSocketServer.SIBS.Front
             try
             {
                 var pairingReq = new PairingReq() { PairingCode = code, PairingStep = PairingStep.VALIDATE_PAIRING_CODE };
-                await Send(JsonConvert.SerializeObject(pairingReq));
+                await SendPairingRequestCode(pairingReq);
             }
             catch (Exception ex)
             {
@@ -631,6 +745,15 @@ namespace SimpleWebSocketServer.SIBS.Front
         #endregion
 
         #region "Events"
+
+        /// <summary>
+        /// OnTerminalStatusReqResponseReceived event handler
+        /// </summary>
+        /// <param name="reqResponse">The response</param>
+        private void OnTerminalStatusReqResponseReceived(TerminalStatusReqResponse reqResponse)
+        {
+            TerminalStatusReqResponseReceived?.Invoke(this, reqResponse);
+        }
 
         /// <summary>
         /// OnHeartbeatNotificationReceived event handler
@@ -783,6 +906,15 @@ namespace SimpleWebSocketServer.SIBS.Front
         private void OnEventNotificationReceived(EventNotification reqResponse)
         {
             EventNotificationReceived?.Invoke(this, reqResponse);
+        }
+
+        /// <summary>
+        /// OnPendingReversalsReqResponseReceived event handler
+        /// </summary>
+        /// <param name="reqResponse">The response</param>
+        private void OnTerminalDisconnectedReceived(TerminalDisconnected reqResponse)
+        {
+            TerminalDisconnectedReceived?.Invoke(reqResponse);
         }
 
         #endregion
