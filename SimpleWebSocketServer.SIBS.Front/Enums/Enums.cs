@@ -134,6 +134,8 @@ namespace SimpleWebSocketServer.SIBS.Front.Enums
             SendPendingReversalsRequest = 16,
             [Description("Send delete pending reversals request")]
             SendDeletePendingReversalsReqRequest = 17,
+            [Description("Send Terminal Status Request")]
+            SendTerminalStatusRequest = 18,
             [Description("Show list of commands")]
             ShowListOfCommands = 9998
         }
