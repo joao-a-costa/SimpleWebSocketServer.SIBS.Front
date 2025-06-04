@@ -200,6 +200,10 @@ namespace SimpleWebSocketServer.SIBS.Front.Console
                             await TerminalClient.SendTerminalStatusRequest();
                             WaitForEvent(statusEventReceived);
                             break;
+                        case TerminalCommandOptions.SendListTerminalsRequest:
+                            await TerminalClient.SendListTerminalRequest();
+                            WaitForEvent(statusEventReceived);
+                            break;
                         //case TerminalCommandOptions.LinqTerminalToFrontRequest:
                         //    await TerminalClient.LinqTerminalToFrontRequest();
                         //    WaitForEvent(statusEventReceived);
