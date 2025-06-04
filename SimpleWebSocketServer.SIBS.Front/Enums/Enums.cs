@@ -138,6 +138,8 @@ namespace SimpleWebSocketServer.SIBS.Front.Enums
             SendTerminalStatusRequest = 18,
             [Description("Send List Terminals Request")]
             SendListTerminalsRequest = 19,
+            [Description("Send Linq Terminal to Front Request")]
+            SendLinqTerminalToFrontRequest = 20,
             [Description("Show list of commands")]
             ShowListOfCommands = 9998
         }

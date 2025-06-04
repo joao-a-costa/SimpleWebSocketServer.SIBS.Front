@@ -241,6 +241,10 @@ namespace SimpleWebSocketServer.SIBS.Front
                         if (newTerminalConnectedReq.TerminalId == TerminalId)
                             LinqTerminalToFrontRequest(ClientId, TerminalId).Wait();
                         break;
+                    case RequestType.LINQ_TERMINAL_TO_FRONT_REQUEST:
+                        var linqTerminalToFrontReq = JsonConvert.DeserializeObject<LinqTerminalToFrontReq>(message);
+                        LinqTerminalToFrontRequest(linqTerminalToFrontReq.Front, linqTerminalToFrontReq.Terminal).Wait();
+                        break;
                     default:
                         //Log(_MessageReceivedUnknownMessage);
                         break;
@@ -721,6 +725,24 @@ namespace SimpleWebSocketServer.SIBS.Front
             }
         }
 
+        public async Task LinqTerminalToFrontRequest(int terminaId)
+        {
+            try
+            {
+                var linqTerminalToFrontResponse = new LinqTerminalToFrontReq
+                {
+                    Front = ClientId,
+                    Terminal = terminaId,
+                };
+
+                await Send(JsonConvert.SerializeObject(linqTerminalToFrontResponse));
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"{_MessageErrorProcessingRequest}: {ex.Message}");
+            }
+        }
+
         public async Task LinqTerminalToFrontRequest(Guid clientId, int terminaId)
         {
             try
@@ -737,7 +759,6 @@ namespace SimpleWebSocketServer.SIBS.Front
             {
                 System.Console.WriteLine($"{_MessageErrorProcessingRequest}: {ex.Message}");
             }
-
         }
 
         #endregion

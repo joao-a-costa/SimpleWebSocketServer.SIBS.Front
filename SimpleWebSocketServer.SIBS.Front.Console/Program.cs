@@ -18,6 +18,7 @@ namespace SimpleWebSocketServer.SIBS.Front.Console
         private const string _MessageStoppingTheServer = "Disconnecting...";
         private const string _MessageTheFollowingCommandsAreAvailable = "The following commands are available:";
         private const string _MessageEnterCode = "Enter code or 'q' to stop: ";
+        private const string _MessageEnterTerminalID = "Please enter the terminal ID to link to the front (or 'q' to cancel):";
         private const string _MessageInvalidInput = "Invalid input";
         private const string _ClientId = "22a17e95-0f30-4f0d-86c6-c84e9e519a9c";
         private const int _TerminalID = 2060668540;
@@ -204,6 +205,9 @@ namespace SimpleWebSocketServer.SIBS.Front.Console
                             await TerminalClient.SendListTerminalRequest();
                             WaitForEvent(statusEventReceived);
                             break;
+                        case TerminalCommandOptions.SendLinqTerminalToFrontRequest:
+                            await SendLinqTerminalToFrontRequest();
+                            break;
                         //case TerminalCommandOptions.LinqTerminalToFrontRequest:
                         //    await TerminalClient.LinqTerminalToFrontRequest();
                         //    WaitForEvent(statusEventReceived);
@@ -245,6 +249,28 @@ namespace SimpleWebSocketServer.SIBS.Front.Console
         {
             eventHandle.WaitOne();
             eventHandle.Reset();
+        }
+
+        private static async Task SendLinqTerminalToFrontRequest()
+        {
+            System.Console.WriteLine(_MessageEnterTerminalID);
+
+            string input = System.Console.ReadLine();
+
+            // Check if the input is 'q' to cancel
+            if (input.ToLower() == "q")
+                return;
+
+            // Parse the input to an integer
+            if (!int.TryParse(input, out int terminalId))
+            {
+                System.Console.WriteLine(_MessageInvalidInput);
+                return;                
+            }
+
+            // Send the request to link the terminal to the front
+            await TerminalClient.LinqTerminalToFrontRequest(terminalId);
+            WaitForEvent(statusEventReceived);
         }
 
         #endregion
