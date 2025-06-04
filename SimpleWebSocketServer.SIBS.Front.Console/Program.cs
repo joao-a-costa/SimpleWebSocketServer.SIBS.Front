@@ -10,7 +10,7 @@ namespace SimpleWebSocketServer.SIBS.Front.Console
     {
         #region "Constants"
 
-        private const string _Address = "wss://192.168.1.100:10005";
+        private const string _Address = "wss://192.168.40.104:10005";
         private const string _MessageEnterQToStopCommand = "Enter 'q' to stop the application";
         private const string _MessageErrorErrorOccurred = "Error occurred";
         private const string _MessageErrorProcessingRequest = "Error processing request";
@@ -20,7 +20,7 @@ namespace SimpleWebSocketServer.SIBS.Front.Console
         private const string _MessageEnterCode = "Enter code or 'q' to stop: ";
         private const string _MessageInvalidInput = "Invalid input";
         private const string _ClientId = "22a17e95-0f30-4f0d-86c6-c84e9e519a9c";
-        private const int _TerminalID = 61202;
+        private const int _TerminalID = 2060668540;
 
         #endregion
 
@@ -66,6 +66,7 @@ namespace SimpleWebSocketServer.SIBS.Front.Console
                 TerminalClient.PendingReversalsReqReceived += TerminalClient_PendingReversalsReqReceived;
                 TerminalClient.DeletePendingReversalsReqReceived += TerminalClient_DeletePendingReversalsReqReceived;
                 TerminalClient.ReconciliationReqReceived += TerminalClient_ReconciliationReqReceived;
+                TerminalClient.TerminalStatusReqResponseReceived += TerminalClient_TerminalStatusReqResponseReceived;
 
                 ListenForUserInput().Wait();
             }
@@ -193,6 +194,10 @@ namespace SimpleWebSocketServer.SIBS.Front.Console
                             break;
                         case TerminalCommandOptions.SendDeletePendingReversalsReqRequest:
                             await TerminalClient.SendDeletePendingReversalsReqRequest(new DeletePendingReversalsReq());
+                            WaitForEvent(statusEventReceived);
+                            break;
+                        case TerminalCommandOptions.SendTerminalStatusRequest:
+                            await TerminalClient.SendTerminalStatusRequest();
                             WaitForEvent(statusEventReceived);
                             break;
                         //case TerminalCommandOptions.LinqTerminalToFrontRequest:
@@ -359,6 +364,12 @@ namespace SimpleWebSocketServer.SIBS.Front.Console
         }
 
         private static void TerminalClient_ReconciliationReqReceived(object sender, ReconciliationReqResponse reqResponse)
+        {
+            Log(Newtonsoft.Json.JsonConvert.SerializeObject(reqResponse));
+            statusEventReceived.Set();
+        }
+
+        private static void TerminalClient_TerminalStatusReqResponseReceived(object sender, TerminalStatusReqResponse reqResponse)
         {
             Log(Newtonsoft.Json.JsonConvert.SerializeObject(reqResponse));
             statusEventReceived.Set();
