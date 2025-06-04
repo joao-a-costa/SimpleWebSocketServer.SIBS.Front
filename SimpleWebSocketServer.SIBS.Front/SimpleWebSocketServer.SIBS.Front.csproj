@@ -94,6 +94,7 @@
     <Compile Include="Models\RegisterFrontReq.cs" />
     <Compile Include="Models\RegisterFrontResponse.cs" />
     <Compile Include="Models\SendResult.cs" />
+    <Compile Include="Models\SetAuthCredentialsReq.cs" />
     <Compile Include="Models\SetAuthCredentialsReqResponse.cs" />
     <Compile Include="Models\SetMerchantDataReq.cs" />
     <Compile Include="Models\SetMerchantDataReqResponse.cs" />

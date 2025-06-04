@@ -11,7 +11,7 @@ namespace SimpleWebSocketServer.SIBS.Front.Models
 
 
         [JsonProperty("terminalId")]
-        public int TerminalId { get; set; }
+        public long TerminalId { get; set; }
 
         [JsonProperty("type")]
         [JsonConverter(typeof(StringEnumConverter))]

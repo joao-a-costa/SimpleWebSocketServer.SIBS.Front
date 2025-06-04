@@ -22,7 +22,7 @@ namespace SimpleWebSocketServer.SIBS.Front
 
         #endregion
 
-        public TerminalClient(string address, Guid clientId, int terminalId)
+        public TerminalClient(string address, Guid clientId, long terminalId)
         {
             Address = address;
             ClientId = clientId;
@@ -32,7 +32,7 @@ namespace SimpleWebSocketServer.SIBS.Front
         private string Address { get; set; }
         private ClientWebSocket Socket { get; set; }
         public Guid ClientId { get; set; }
-        public int TerminalId { get; set; }
+        public long TerminalId { get; set; }
         public bool IsConnected => Socket?.State == WebSocketState.Open;
 
         public delegate void RegisterFrontResponseReceivedEventHandler(object sender, RegisterFrontResponse reqResponse);
@@ -67,6 +67,7 @@ namespace SimpleWebSocketServer.SIBS.Front
         public delegate void FrontRegisteredEventHandler(object sender, Guid clientId);
         public delegate void TerminalDisconnectedEventHandler(TerminalDisconnected reqResponse);
 
+        public event SetAuthCredentialsReqResponseEventHandler SetAuthCredentialsReqResponseReceived;
         public event TerminalStatusReqResponseReceivedEventHandler TerminalStatusReqResponseReceived;
         public event ProcessPaymentReqResponseEventHandler ProcessPaymentReqReceived;
         public event EventNotificationEventHandler EventNotificationReceived;
@@ -162,7 +163,6 @@ namespace SimpleWebSocketServer.SIBS.Front
                     case RequestType.LINQ_TERMINAL_TO_FRONT_RESPONSE:
                         LinqTerminalToFrontResponseReceived?.Invoke(this, JsonConvert.DeserializeObject<LinqTerminalToFrontResponse>(message));
                         break;
-
                     case RequestType.EVENT_NOTIFICATION:
                         OnEventNotificationReceived(JsonConvert
                             .DeserializeObject<EventNotification>(message));
@@ -244,6 +244,10 @@ namespace SimpleWebSocketServer.SIBS.Front
                     case RequestType.LINQ_TERMINAL_TO_FRONT_REQUEST:
                         var linqTerminalToFrontReq = JsonConvert.DeserializeObject<LinqTerminalToFrontReq>(message);
                         LinqTerminalToFrontRequest(linqTerminalToFrontReq.Front, linqTerminalToFrontReq.Terminal).Wait();
+                        break;
+                    case RequestType.SET_AUTH_CREDENTIAL_RESPONSE:
+                        OnSetAuthCredentialsReqResponseReceived(JsonConvert
+                            .DeserializeObject<SetAuthCredentialsReqResponse>(message));
                         break;
                     default:
                         //Log(_MessageReceivedUnknownMessage);
@@ -725,7 +729,7 @@ namespace SimpleWebSocketServer.SIBS.Front
             }
         }
 
-        public async Task LinqTerminalToFrontRequest(int terminaId)
+        public async Task LinqTerminalToFrontRequest(long terminaId)
         {
             try
             {
@@ -743,7 +747,7 @@ namespace SimpleWebSocketServer.SIBS.Front
             }
         }
 
-        public async Task LinqTerminalToFrontRequest(Guid clientId, int terminaId)
+        public async Task LinqTerminalToFrontRequest(Guid clientId, long terminaId)
         {
             try
             {
@@ -754,6 +758,18 @@ namespace SimpleWebSocketServer.SIBS.Front
                 };
 
                 await Send(JsonConvert.SerializeObject(linqTerminalToFrontResponse));
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"{_MessageErrorProcessingRequest}: {ex.Message}");
+            }
+        }
+
+        public async Task SendSetAuthCredentialsReqRequest(SetAuthCredentialsReq setAuthCredentialsReq)
+        {
+            try
+            {
+                await Send(JsonConvert.SerializeObject(setAuthCredentialsReq));
             }
             catch (Exception ex)
             {
@@ -936,6 +952,15 @@ namespace SimpleWebSocketServer.SIBS.Front
         private void OnTerminalDisconnectedReceived(TerminalDisconnected reqResponse)
         {
             TerminalDisconnectedReceived?.Invoke(reqResponse);
+        }
+
+        /// <summary>
+        /// OnSetAuthCredentialsReqResponseReceived event handler
+        /// </summary>
+        /// <param name="reqResponse"></param>
+        private void OnSetAuthCredentialsReqResponseReceived(SetAuthCredentialsReqResponse reqResponse)
+        {
+            SetAuthCredentialsReqResponseReceived?.Invoke(this, reqResponse);
         }
 
         #endregion

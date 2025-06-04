@@ -10,7 +10,7 @@ namespace SimpleWebSocketServer.SIBS.Front.Console
     {
         #region "Constants"
 
-        private const string _Address = "wss://192.168.40.104:10005";
+        private const string _Address = "wss://192.168.1.100:10005";
         private const string _MessageEnterQToStopCommand = "Enter 'q' to stop the application";
         private const string _MessageErrorErrorOccurred = "Error occurred";
         private const string _MessageErrorProcessingRequest = "Error processing request";
@@ -21,7 +21,7 @@ namespace SimpleWebSocketServer.SIBS.Front.Console
         private const string _MessageEnterTerminalID = "Please enter the terminal ID to link to the front (or 'q' to cancel):";
         private const string _MessageInvalidInput = "Invalid input";
         private const string _ClientId = "22a17e95-0f30-4f0d-86c6-c84e9e519a9c";
-        private const int _TerminalID = 2060668540;
+        private const int _TerminalID = 1605902;
 
         #endregion
 
