@@ -29,8 +29,8 @@ namespace SimpleWebSocketServer.SIBS.Front
             TerminalId = terminalId;            
         }
 
-        private string Address { get; set; }
         private ClientWebSocket Socket { get; set; }
+        public string Address { get; set; }
         public Guid ClientId { get; set; }
         public long TerminalId { get; set; }
         public bool IsConnected => Socket?.State == WebSocketState.Open;

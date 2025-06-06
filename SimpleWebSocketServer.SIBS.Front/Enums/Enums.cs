@@ -102,12 +102,10 @@ namespace SimpleWebSocketServer.SIBS.Front.Enums
         {
             [Description("Connect to server")]
             ConnectToServer = 1,
-            //[Description("Send register front status request")]
-            //SendRegisterFrontRequest = 2,
-            //[Description("List terminals available")]
-            //SendListTerminalsAvailableRequest = 3,
-            //[Description("Linq terminal to front")]
-            //LinqTerminalToFrontRequest = 4,
+            [Description("Disconnect from server")]
+            DisconnectFromServer = 2,
+            [Description("Configure Address")]
+            ConfigureAddress = 3,
             [Description("Send process payment request")]
             SendProcessPaymentRequest = 5,
             [Description("Send pairing request")]

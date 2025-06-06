@@ -10,7 +10,7 @@ namespace SimpleWebSocketServer.SIBS.Front.Console
     {
         #region "Constants"
 
-        private const string _Address = "wss://192.168.1.100:10005";
+        private const string _Address = "wss://192.168.40.104:10005";
         private const string _MessageEnterQToStopCommand = "Enter 'q' to stop the application";
         private const string _MessageErrorErrorOccurred = "Error occurred";
         private const string _MessageErrorProcessingRequest = "Error processing request";
@@ -27,12 +27,10 @@ namespace SimpleWebSocketServer.SIBS.Front.Console
 
         private static TerminalClient TerminalClient { get; set; }
         public static int TerminalClient_RefundReqResponseReceived { get; }
-
         private static readonly ManualResetEvent statusEventReceived = new ManualResetEvent(false);
-        /// <summary>
         private static PaymentData LastPaymentData = null;
-        /// </summary>
-        /// <param name="args"></param>
+
+        public static string Address { get; set; } = _Address;
 
         static void Main(string[] args)
         {
@@ -127,15 +125,13 @@ namespace SimpleWebSocketServer.SIBS.Front.Console
                     switch (command)
                     {
                         case TerminalCommandOptions.ConnectToServer:
-                            var res = await TerminalClient.Connect();
-
-                            if (res.Item1)
-                            {
-                                await TerminalClient.SendRegisterFrontRequest(Guid.Parse(_ClientId));
-                                WaitForEvent(statusEventReceived);
-                            }
-                            else
-                                Log(res.Item2.Message);
+                            await ConnectToServer();
+                            break;
+                        case TerminalCommandOptions.DisconnectFromServer:
+                            await DisconnectFromServer();
+                            break;
+                        case TerminalCommandOptions.ConfigureAddress:
+                            ConfigureAddress();
                             break;
                         //case TerminalCommandOptions.SendRegisterFrontRequest:
                         //    await TerminalClient.SendRegisterFrontRequest(Guid.Parse(_ClientId));
@@ -208,10 +204,6 @@ namespace SimpleWebSocketServer.SIBS.Front.Console
                         case TerminalCommandOptions.SendLinqTerminalToFrontRequest:
                             await SendLinqTerminalToFrontRequest();
                             break;
-                        //case TerminalCommandOptions.LinqTerminalToFrontRequest:
-                        //    await TerminalClient.LinqTerminalToFrontRequest();
-                        //    WaitForEvent(statusEventReceived);
-                        //    break;
                         case TerminalCommandOptions.ShowListOfCommands:
                             ShowListOfCommands();
                             break;
@@ -251,26 +243,55 @@ namespace SimpleWebSocketServer.SIBS.Front.Console
             eventHandle.Reset();
         }
 
-        private static async Task SendLinqTerminalToFrontRequest()
+        /// <summary>
+        /// Configures the address for the WebSocket server.
+        /// </summary>
+        private static void ConfigureAddress()
         {
-            System.Console.WriteLine(_MessageEnterTerminalID);
-
-            string input = System.Console.ReadLine();
-
-            // Check if the input is 'q' to cancel
-            if (input.ToLower() == "q")
+            System.Console.WriteLine("Current address: " + Address);
+            System.Console.WriteLine("Enter the new address (or 'q' to cancel):");
+            string newAddress = System.Console.ReadLine();
+            if (newAddress.ToLower() == "q")
                 return;
-
-            // Parse the input to an integer
-            if (!int.TryParse(input, out int terminalId))
+            if (Uri.IsWellFormedUriString(newAddress, UriKind.Absolute))
             {
-                System.Console.WriteLine(_MessageInvalidInput);
-                return;                
+                Address = newAddress;
+                System.Console.WriteLine($"Address updated to: {Address}");
             }
+            else
+                System.Console.WriteLine("Invalid address format. Please try again.");
+        }
 
-            // Send the request to link the terminal to the front
-            await TerminalClient.LinqTerminalToFrontRequest(terminalId);
-            WaitForEvent(statusEventReceived);
+        /// <summary>
+        /// Connects to the WebSocket server asynchronously.
+        /// </summary>
+        /// <returns>The task object representing the asynchronous operation.</returns>
+        private static async Task DisconnectFromServer()
+        {
+            if (TerminalClient != null)
+            {
+                System.Console.WriteLine(_MessageStoppingTheServer);
+                await TerminalClient.Disconnect(); // Stop the WebSocket server
+            }
+        }
+
+        /// <summary>
+        /// Connects to the WebSocket server and registers the front client.
+        /// </summary>
+        /// <returns>The task object representing the asynchronous operation.</returns>
+        private static async Task ConnectToServer()
+        {
+            TerminalClient.Address = Address; // Update the address if needed
+            System.Console.WriteLine($"Connecting to server at {TerminalClient.Address}...");
+            var res = await TerminalClient.Connect();
+
+            if (res.Item1)
+            {
+                await TerminalClient.SendRegisterFrontRequest(Guid.Parse(_ClientId));
+                WaitForEvent(statusEventReceived);
+            }
+            else
+                Log(res.Item2.Message);
         }
 
         #endregion
@@ -431,6 +452,28 @@ namespace SimpleWebSocketServer.SIBS.Front.Console
         {
             Log(Newtonsoft.Json.JsonConvert.SerializeObject(reqResponse));
             statusEventReceived.Set();
+        }
+
+        private static async Task SendLinqTerminalToFrontRequest()
+        {
+            System.Console.WriteLine(_MessageEnterTerminalID);
+
+            string input = System.Console.ReadLine();
+
+            // Check if the input is 'q' to cancel
+            if (input.ToLower() == "q")
+                return;
+
+            // Parse the input to an integer
+            if (!int.TryParse(input, out int terminalId))
+            {
+                System.Console.WriteLine(_MessageInvalidInput);
+                return;
+            }
+
+            // Send the request to link the terminal to the front
+            await TerminalClient.LinqTerminalToFrontRequest(terminalId);
+            WaitForEvent(statusEventReceived);
         }
 
         #endregion
